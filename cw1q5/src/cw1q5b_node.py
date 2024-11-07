@@ -33,10 +33,12 @@ see all the frames stacked in the z axis (the home position).
 # TODO: populate the values inside the youbot_dh_parameters dictionary with the ones you found in question 5a.
 
 
-youbot_dh_parameters = {'a':[, , , , ],
-                        'alpha': [, , , , ],
-                        'd' : [, , , , ],
-                        'theta' : [, , , , ]}
+youbot_dh_parameters = {
+    'a': [0, 0, 155, 135, 0],
+    'alpha': [0, -90, 0, 0, 90],
+    'd': [36, 0, 0, 0, 0],
+    'theta': [0, 0, 0, 0, 0]  # These will be updated with joint angles at runtime
+}
 
 
 def rotmat2q(R):
@@ -90,7 +92,17 @@ def standard_dh(a, alpha, d, theta):
     A = np.zeros((4, 4))
 
     # your code starts here -----------------------------
-
+    # Convert angles from degrees to radians for calculation
+    alpha = np.deg2rad(alpha)
+    theta = np.deg2rad(theta)
+    
+    # Homogeneous transformation matrix
+    A = np.array([
+        [np.cos(theta), -np.sin(theta) * np.cos(alpha), np.sin(theta) * np.sin(alpha), a * np.cos(theta)],
+        [np.sin(theta), np.cos(theta) * np.cos(alpha), -np.cos(theta) * np.sin(alpha), a * np.sin(theta)],
+        [0, np.sin(alpha), np.cos(alpha), d],
+        [0, 0, 0, 1]
+    ])
     
     # your code ends here ------------------------------
 
@@ -121,7 +133,13 @@ def forward_kinematics(dh_dict, joints_readings, up_to_joint=5):
     
     T = np.identity(4)
     # your code starts here ------------------------------
-
+    for i in range(up_to_joint):
+        a = dh_dict['a'][i]
+        alpha = dh_dict['alpha'][i]
+        d = dh_dict['d'][i]
+        theta = joints_readings[i]  # Current joint angle
+        T_i = standard_dh(a, alpha, d, theta)
+        T = T @ T_i
 
     # your code ends here -------------------------------
 
@@ -147,7 +165,28 @@ def fkine_wrapper(joint_msg, br):
     """
     assert isinstance(joint_msg, JointState), "Node must subscribe to a topic where JointState messages are published"
     # your code starts here ------------------------------
+    joint_angles = joint_msg.position[:5]  # Retrieve first 5 joint angles
     
+    for i in range(5):
+        T = forward_kinematics(youbot_dh_parameters, joint_angles, up_to_joint=i + 1)
+        
+        # Extract translation and rotation
+        translation = T[:3, 3]
+        rotation_matrix = T[:3, :3]
+        quaternion = rotmat2q(rotation_matrix)
+        
+        # Create the transformation message
+        transform = TransformStamped()
+        transform.header.stamp = rospy.Time.now()
+        transform.header.frame_id = "base_link"
+        transform.child_frame_id = f"arm5b_link_{i+1}"
+        transform.transform.translation.x = translation[0]
+        transform.transform.translation.y = translation[1]
+        transform.transform.translation.z = translation[2]
+        transform.transform.rotation = quaternion
+        
+        # Broadcast the transformation
+        br.sendTransform(transform)
         
     # your code ends here ------------------------------
 
@@ -165,7 +204,7 @@ def main():
     # as callback and pass the broadcaster as an additional argument to the callback
     
     # your code starts here ------------------------------
-
+    rospy.Subscriber('/joint_states', JointState, fkine_wrapper, br)
     # your code ends here ----------------------
     
     rospy.spin()
