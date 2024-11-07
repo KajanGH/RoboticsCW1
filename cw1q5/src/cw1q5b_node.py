@@ -175,7 +175,7 @@ def fkine_wrapper(joint_msg, br):
         transform = TransformStamped()
         transform.header.stamp = rospy.Time.now()
         transform.header.frame_id = "base_link"
-        transform.child_frame_id = f"arm5b_link_{i+1}"
+        transform.child_frame_id = f"arm_link_{i+1}"
         transform.transform.translation.x = translation[0]
         transform.transform.translation.y = translation[1]
         transform.transform.translation.z = translation[2]
