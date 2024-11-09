@@ -102,6 +102,7 @@ def convert_quat2rodrigues(request):
 
 def rotation_converter():
     rospy.init_node('rotation_converter')
+    rospy.loginfo("Rotation Converter Node has started.")
 
     #Initialise the services
     rospy.Service('quat2rodrigues', quat2rodrigues, convert_quat2rodrigues)
