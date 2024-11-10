@@ -47,13 +47,15 @@ fall on the exact joint positions of the Youbot.
 
 
 # TODO: populate the values inside the youbot_dh_parameters dictionary with the ones you found in question 5c.
-youbot_dh_parameters = {'a':[, , , , ],
-                        'alpha': [, , , , ],
-                        'd' : [, , , , ],
-                        'theta' : [, , , , ]}
+youbot_dh_parameters = {
+    'a': [0.024, 0.033, 0.0, 0.0, -0.002],
+    'alpha': [0, np.deg2rad(-65), np.deg2rad(146), np.deg2rad(-102.5), 0],
+    'd': [0.096, 0.019, 0.155, 0.135, 0.130],
+    'theta': [0, 0, 0, 0, 0]  
+}
 
 # TODO: populate the values inside the youbot_joint_offsets dictionary with the ones you found in question 5c.
-youbot_joint_offsets = [, , , , ]
+youbot_joint_offsets = [offset1, offset2, offset3, offset4, offset5]
 
 youbot_dh_offset_paramters = youbot_dh_parameters.copy()
 
@@ -112,7 +114,26 @@ def fkine_wrapper(joint_msg, br):
     
     # your code starts here ------------------------------
     #depending on the dh parameters you may need to change the sign of some angles here
-    
+        # Adjust the joint angles with polarity and offsets
+    joint_angles = [
+        angle * polarity + offset
+        for angle, polarity, offset in zip(joint_msg.position, youbot_joint_readings_polarity, youbot_joint_offsets)
+    ]
+
+    transforms = forward_kinematics(youbot_dh_parameters, joint_angles)
+    for i, transform in enumerate(transforms):
+        t = TransformStamped()
+        t.header.stamp = rospy.Time.now()
+        t.header.frame_id = 'base_link'
+        t.child_frame_id = f'arm5d_link_{i+1}'
+
+        t.transform.translation.x = transform[0, 3]
+        t.transform.translation.y = transform[1, 3]
+        t.transform.translation.z = transform[2, 3]
+
+        t.transform.rotation = rotmat2q(transform[:3, :3])
+
+        br.sendTransform(t)
         
     # your code ends here ------------------------------
 
@@ -129,7 +150,9 @@ def main():
     # as callback and pass the broadcaster as an additional argument to the callback
     
     # your code starts here ------------------------------
-
+    rospy.Subscriber('/joint_states', JointState, fkine_wrapper, br)
+    
+    rospy.spin()
     # your code ends here ----------------------
     
     rospy.spin()
