@@ -34,10 +34,10 @@ see all the frames stacked in the z axis (the home position).
 
 
 youbot_dh_parameters = {
-    'a': [0, 155, 135, 0, 0],
+    'a': [0, 0, 155, 135, 0],
     'alpha': [0, 90, 0, 0, 90],
-    'd': [147, 0, 0, 0, 113],
-    'theta': [0, 90, 0, 90, 0] 
+    'd': [36, 111, 0, 0, 113],
+    'theta': [0, 0, 0, 0, 0] 
 }
 
 
